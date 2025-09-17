@@ -3,7 +3,7 @@ title Iniciando Desarrollo - Synapse App
 
 echo Iniciando entorno de desarrollo...
 
-REM Verificar que MySQL esté ejecutándose
+REM Verificar que MySQL esté ejecutándose0
 mysql -u root -e "SELECT 1;" >nul 2>&1
 if %errorlevel% neq 0 (
     echo  MySQL no está ejecutándose. Por favor, inicia el servicio MySQL.

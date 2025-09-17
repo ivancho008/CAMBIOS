@@ -1,0 +1,15 @@
+meta {
+  name: obtener tareas por sala
+  type: http
+  seq: 8
+}
+
+get {
+  url: http://127.0.0.1:5000/api/tareas/sala/<string:sala_id>
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

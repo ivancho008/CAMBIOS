@@ -1,0 +1,15 @@
+meta {
+  name: obtener una tarea
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://127.0.0.1:5000/api/tareas/<string:tarea_id>
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

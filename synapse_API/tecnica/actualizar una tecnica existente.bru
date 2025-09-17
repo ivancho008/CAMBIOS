@@ -1,0 +1,15 @@
+meta {
+  name: actualizar una tecnica existente
+  type: http
+  seq: 5
+}
+
+put {
+  url: http://127.0.0.1:5000/api/tecnicas/<string:tecnica_id>
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

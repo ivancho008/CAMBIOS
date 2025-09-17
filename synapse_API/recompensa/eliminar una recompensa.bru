@@ -1,0 +1,15 @@
+meta {
+  name: eliminar una recompensa
+  type: http
+  seq: 5
+}
+
+delete {
+  url: http://127.0.0.1:5000/api/recompensa/<string:recompensa_id>
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

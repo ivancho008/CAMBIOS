@@ -1,0 +1,15 @@
+meta {
+  name: ontener una sesion especifica
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://127.0.0.1:5000/api/sesiones/<string:sesion_id>
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

@@ -1,0 +1,15 @@
+meta {
+  name: obtener estadisticas de la tarea
+  type: http
+  seq: 7
+}
+
+get {
+  url: http://127.0.0.1:5000/api/tareas/estadisticas
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

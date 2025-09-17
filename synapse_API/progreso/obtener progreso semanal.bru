@@ -1,0 +1,15 @@
+meta {
+  name: obtener progreso semanal
+  type: http
+  seq: 4
+}
+
+get {
+  url: http://127.0.0.1:5000/api/progreso/semana
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

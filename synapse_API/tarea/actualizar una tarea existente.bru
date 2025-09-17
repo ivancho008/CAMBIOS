@@ -1,0 +1,15 @@
+meta {
+  name: actualizar una tarea existente
+  type: http
+  seq: 4
+}
+
+put {
+  url: http://127.0.0.1:5000/api/tareas/<string:tarea_id>
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

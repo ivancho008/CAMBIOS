@@ -1,0 +1,15 @@
+meta {
+  name: otorgar recompensa
+  type: http
+  seq: 8
+}
+
+patch {
+  url: http://127.0.0.1:5000/api/recompensa/consumir/<int:recompensa_usuario_id>
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

@@ -1,0 +1,15 @@
+meta {
+  name: actualizar sesion
+  type: http
+  seq: 4
+}
+
+put {
+  url: http://127.0.0.1:5000/api/sesiones/<string:sesion_id>
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}
