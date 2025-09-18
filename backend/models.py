@@ -47,9 +47,7 @@ class Usuario(db.Model):
             'Username': self.Username,
             'correo': self.correo,
             'fecha_registro': self.fecha_registro.isoformat() if self.fecha_registro else None,
-            'ultimo_acceso': self.ultimo_acceso.isoformat() if self.ultimo_acceso else None,
-            'rol_id': self.rol_id,
-            'activo': self.activo
+            'ultimo_ac
         }
 
 # Modelo Sala
@@ -77,7 +75,9 @@ class Sala(db.Model):
 # UsuarioSala
 class UsuarioSala(db.Model):
     __tablename__ = 'usuariosala'
-
+ceso': self.ultimo_acceso.isoformat() if self.ultimo_acceso else None,
+            'rol_id': self.rol_id,
+            'activo': self.activo
     id_usuario = db.Column(db.String(36), db.ForeignKey('usuario.id_usuario'), primary_key=True)
     id_sala = db.Column(db.String(36), db.ForeignKey('sala.id_sala'), primary_key=True)
     fecha_union = db.Column(db.DateTime(6), default=datetime.utcnow, nullable=False)
