@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 // Componentes
 import Navbar from './componentes/Navbar.jsx';
 import Footer from './componentes/Footer.jsx';
@@ -101,39 +100,28 @@ export default function SynapseApp() {
               }
             />
 
-            {/* Rutas protegidas */}
-            <Route
-              path="/concentracion"
-              element={
-                user ? (
-                  <ConcentracionPage user={user} />
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              }
-            />
+            {/* Ruta PÚBLICA para Pomodoro durante desarrollo */}
             <Route
               path="/pomodoro"
-              element={
-                user ? <PomodoroPage user={user} /> : <Navigate to="/" replace />
-              }
+              element={<PomodoroPage user={user} />}
             />
+
+            {/* Rutas que siguen protegidas */}
+          <Route
+             path="/concentracion"
+              element={<ConcentracionPage user={user}  />}
+            />
+
+
+
             <Route
               path="/tareas"
-              element={
-                user ? <TareasPage user={user} /> : <Navigate to="/" replace />
-              }
+              element={<TareasPage user={user} />}
             />
-            <Route
-              path="/recompensas"
-              element={
-                user ? (
-                  <RecompensasPage user={user} />
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              }
-            />
+           <Route
+                 path="/recompensas"
+                element={<RecompensasPage user={user} />}
+          />
 
             {/* Ruta por defecto */}
             <Route path="*" element={<Navigate to="/" replace />} />
