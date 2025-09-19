@@ -1,6 +1,6 @@
+// src/App.jsx
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 // Componentes
 import Navbar from './componentes/Navbar.jsx';
 import Footer from './componentes/Footer.jsx';
@@ -13,10 +13,12 @@ import ConcentracionPage from './paginas/ConcentracionPage.jsx';
 import PomodoroPage from './paginas/PomodoroPage.jsx';
 import TareasPage from './paginas/TareasPage.jsx';
 import RecompensasPage from './paginas/RecompensasPage.jsx';
+import MeditacionPage from './paginas/MeditacionPage.jsx';
+import PerfilPage from './paginas/PerfilPage.jsx';
+import SesionGrupalPage from './paginas/SesionGrupalPage.jsx';
 
 // ------------------------
 // Hook de autenticación
-// ------------------------
 const useAuth = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -62,11 +64,13 @@ const useAuth = () => {
 };
 
 // ------------------------
-// App principal
-// ------------------------
+// App principal unificada
 export default function SynapseApp() {
   const { user, loading, login, register, logout } = useAuth();
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModal, setAuthModal] = useState({ open: false, mode: 'login' });
+
+  const onAuthClick = (mode = 'login') => setAuthModal({ open: true, mode });
+  const closeAuthModal = () => setAuthModal({ open: false, mode: 'login' });
 
   if (loading) {
     return (
@@ -84,58 +88,23 @@ export default function SynapseApp() {
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <Navbar
           user={user}
-          onAuthClick={() => setShowAuthModal(true)}
+          onAuthClick={onAuthClick}
           onLogout={logout}
         />
 
         <main className="flex-1">
           <Routes>
-            {/* Ruta pública */}
-            <Route
-              path="/"
-              element={
-                <HomePage
-                  user={user}
-                  onAuthClick={() => setShowAuthModal(true)}
-                />
-              }
-            />
+            <Route path="/" element={<HomePage user={user} onAuthClick={onAuthClick} />} />
+            <Route path="/pomodoro" element={<PomodoroPage user={user} />} />
+            <Route path="/concentracion" element={<ConcentracionPage user={user} />} />
+            <Route path="/tareas" element={<TareasPage user={user} />} />
+            <Route path="/recompensas" element={<RecompensasPage user={user} />} />
 
-            {/* Rutas protegidas */}
-            <Route
-              path="/concentracion"
-              element={
-                user ? (
-                  <ConcentracionPage user={user} />
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              }
-            />
-            <Route
-              path="/pomodoro"
-              element={
-                user ? <PomodoroPage user={user} /> : <Navigate to="/" replace />
-              }
-            />
-            <Route
-              path="/tareas"
-              element={
-                user ? <TareasPage user={user} /> : <Navigate to="/" replace />
-              }
-            />
-            <Route
-              path="/recompensas"
-              element={
-                user ? (
-                  <RecompensasPage user={user} />
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              }
-            />
+            {/* Rutas adicionales de App2 */}
+            <Route path="/meditacion" element={<MeditacionPage user={user} />} />
+            <Route path="/perfil" element={<PerfilPage user={user} />} />
+            <Route path="/sesion" element={<SesionGrupalPage user={user} />} />
 
-            {/* Ruta por defecto */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
@@ -143,8 +112,9 @@ export default function SynapseApp() {
         <Footer />
 
         <AuthModal
-          isOpen={showAuthModal}
-          onClose={() => setShowAuthModal(false)}
+          isOpen={authModal.open}
+          defaultMode={authModal.mode}
+          onClose={closeAuthModal}
           onLogin={login}
           onRegister={register}
         />
