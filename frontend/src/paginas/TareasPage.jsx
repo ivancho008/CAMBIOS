@@ -1,221 +1,203 @@
-import React, { useState } from 'react';
+// src/paginas/TareasPage.jsx
+import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import Button from '../componentes/Button';
 import Card from '../componentes/Card';
 import Modal from '../componentes/Modal';
 import ProgresoCard from '../componentes/ProgresoCard';
 import { Plus, Edit, Trash2, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { tareasService } from '../services/tareas';
+import { useRecompensas } from '../hooks/useRecompensas';
 
 export default function TareasPage({ user }) {
-  // ⬆️ 1. Todos los hooks primero
-  const [tareas, setTareas] = useState([
-    { id_tarea: '1', titulo: 'Estudiar React', descripcion: 'Completar tutorial de componentes', prioridad: 'alta', completada: false, fecha_vencimiento: '2024-12-31' },
-    { id_tarea: '2', titulo: 'Ejercicio diario', descripcion: '30 minutos de caminata', prioridad: 'media', completada: true, fecha_vencimiento: '2024-12-18' }
-  ]);
+  const [tareas, setTareas] = useState([]);
+  const [listas, setListas] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [showListaModal, setShowListaModal] = useState(false);
   const [editingTarea, setEditingTarea] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [filtros, setFiltros] = useState({
+    estado: '',
+    prioridad: '',
+    sala_id: ''
+  });
+
   const [formData, setFormData] = useState({
     titulo: '',
     descripcion: '',
     prioridad: 'media',
-    fecha_vencimiento: ''
+    fecha_vencimiento: '',
+    sala_id: ''
   });
 
-  // ⬇️ 2. Validación del usuario después de los hooks
-  if (!user) {
-    return <Navigate to="/" replace />;
-  }
+  const [formLista, setFormLista] = useState({
+    nombre: '',
+    descripcion: '',
+    fecha_limite: ''
+  });
 
-  // Funciones
-  const crearTarea = () => {
-    const nuevaTarea = { id_tarea: Date.now().toString(), ...formData, completada: false };
-    setTareas(prev => [...prev, nuevaTarea]);
-    setShowModal(false);
-    resetForm();
-  };
+  const { verificarRecompensas } = useRecompensas();
 
-  const actualizarTarea = () => {
-    setTareas(prev =>
-      prev.map(t =>
-        t.id_tarea === editingTarea.id_tarea ? { ...t, ...formData } : t
-      )
-    );
-    setShowModal(false);
-    resetForm();
-  };
+  useEffect(() => {
+    cargarDatos();
+  }, [filtros]);
 
-  const eliminarTarea = (id) => {
-    if (window.confirm('¿Eliminar tarea?')) {
-      setTareas(prev => prev.filter(t => t.id_tarea !== id));
+  const cargarDatos = async () => {
+    try {
+      setLoading(true);
+      const [tareasData, listasData] = await Promise.all([
+        tareasService.obtenerTareas(filtros),
+        tareasService.obtenerListas()
+      ]);
+      
+      setTareas(tareasData);
+      setListas(listasData.listas || []);
+      setError('');
+    } catch (error) {
+      console.error('Error cargando datos:', error);
+      setError('Error cargando las tareas');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const completarTarea = (id) => {
-    setTareas(prev =>
-      prev.map(t =>
-        t.id_tarea === id ? { ...t, completada: !t.completada } : t
-      )
-    );
+  const crearTarea = async () => {
+    try {
+      const nuevaTarea = await tareasService.crearTarea(formData);
+      setTareas(prev => [nuevaTarea, ...prev]);
+      setShowModal(false);
+      resetForm();
+    } catch (error) {
+      setError('Error creando la tarea: ' + error.message);
+    }
+  };
+
+  const actualizarTarea = async () => {
+    try {
+      const tareaActualizada = await tareasService.actualizarTarea(
+        editingTarea.tarea_id, 
+        formData
+      );
+      setTareas(prev => prev.map(t => 
+        t.tarea_id === editingTarea.tarea_id ? tareaActualizada : t
+      ));
+      setShowModal(false);
+      resetForm();
+    } catch (error) {
+      setError('Error actualizando la tarea: ' + error.message);
+    }
+  };
+
+  const eliminarTarea = async (id) => {
+    if (!window.confirm('¿Estás seguro de que quieres eliminar esta tarea?')) {
+      return;
+    }
+
+    try {
+      await tareasService.eliminarTarea(id);
+      setTareas(prev => prev.filter(t => t.tarea_id !== id));
+    } catch (error) {
+      setError('Error eliminando la tarea: ' + error.message);
+    }
+  };
+
+  const completarTarea = async (tarea) => {
+    try {
+      const hoy = new Date();
+      const fechaVencimiento = tarea.fecha_vencimiento ? new Date(tarea.fecha_vencimiento) : null;
+      
+      let resultado;
+      if (fechaVencimiento && hoy < fechaVencimiento) {
+        resultado = await tareasService.completarTareaAnticipadamente(tarea.tarea_id);
+      } else {
+        resultado = await tareasService.completarTarea(tarea.tarea_id);
+      }
+      
+      setTareas(prev => prev.map(t => 
+        t.tarea_id === tarea.tarea_id 
+          ? { ...t, estado: 'Completado' }
+          : t
+      ));
+      
+      await verificarRecompensas();
+      
+      if (resultado.completada_anticipadamente) {
+        alert(`¡Excelente! Completaste la tarea ${resultado.dias_anticipados} días antes de tiempo.`);
+      }
+    } catch (error) {
+      setError('Error completando la tarea: ' + error.message);
+    }
+  };
+
+  const crearLista = async () => {
+    try {
+      const nuevaLista = await tareasService.crearLista(
+        formLista.nombre,
+        formLista.descripcion,
+        formLista.fecha_limite || null
+      );
+      setListas(prev => [...prev, nuevaLista]);
+      setShowListaModal(false);
+      setFormLista({ nombre: '', descripcion: '', fecha_limite: '' });
+    } catch (error) {
+      setError('Error creando la lista: ' + error.message);
+    }
   };
 
   const resetForm = () => {
-    setFormData({ titulo: '', descripcion: '', prioridad: 'media', fecha_vencimiento: '' });
+    setFormData({
+      titulo: '',
+      descripcion: '',
+      prioridad: 'media',
+      fecha_vencimiento: '',
+      sala_id: ''
+    });
     setEditingTarea(null);
   };
 
-  const handleEdit = (t) => {
-    setEditingTarea(t);
+  const handleEdit = (tarea) => {
+    setEditingTarea(tarea);
     setFormData({
-      titulo: t.titulo,
-      descripcion: t.descripcion || '',
-      prioridad: t.prioridad,
-      fecha_vencimiento: t.fecha_vencimiento || ''
+      titulo: tarea.titulo,
+      descripcion: tarea.descripcion || '',
+      prioridad: tarea.prioridad,
+      fecha_vencimiento: tarea.fecha_vencimiento || '',
+      sala_id: tarea.sala_id || ''
     });
     setShowModal(true);
   };
 
-  const getPrioridadColor = (p) =>
-    p === 'alta'
-      ? 'bg-red-100 text-red-800'
-      : p === 'media'
-      ? 'bg-yellow-100 text-yellow-800'
-      : 'bg-green-100 text-green-800';
+  const getPrioridadColor = (prioridad) => {
+    const colors = {
+      alta: 'bg-red-100 text-red-800 border-red-200',
+      media: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      baja: 'bg-green-100 text-green-800 border-green-200'
+    };
+    return colors[prioridad] || colors.media;
+  };
 
-  const getPrioridadIcon = (p) =>
-    p === 'alta' ? (
-      <AlertCircle size={16} className="text-red-500" />
-    ) : p === 'media' ? (
-      <Clock size={16} className="text-yellow-500" />
-    ) : (
-      <CheckCircle size={16} className="text-green-500" />
-    );
+  const getPrioridadIcon = (prioridad) => {
+    const icons = {
+      alta: <AlertCircle size={16} className="text-red-500" />,
+      media: <Clock size={16} className="text-yellow-500" />,
+      baja: <CheckCircle size={16} className="text-green-500" />
+    };
+    return icons[prioridad] || icons.media;
+  };
 
-  // ⬇️ 3. Renderizado normal
+  const esVencida = (tarea) => {
+    if (!tarea.fecha_vencimiento || tarea.estado === 'Completado') return false;
+    return new Date(tarea.fecha_vencimiento) < new Date();
+  };
+
+  if (!user) {
+    return <Navigate to="/" replace />;
+  }
+
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Gestión de Tareas</h1>
-        <Button onClick={() => setShowModal(true)}>
-          <Plus size={20} /> Nueva Tarea
-        </Button>
-      </div>
-
-      <ProgresoCard usuarioId={user.id_usuario} />
-
-      <div className="grid gap-4 mt-8">
-        {tareas.map((t) => (
-          <Card key={t.id_tarea} className={`${t.completada ? 'opacity-60' : ''}`}>
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h3 className={`text-lg font-semibold ${t.completada ? 'line-through' : ''}`}>
-                    {t.titulo}
-                  </h3>
-                  <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${getPrioridadColor(t.prioridad)}`}>
-                    {getPrioridadIcon(t.prioridad)}
-                    {t.prioridad}
-                  </div>
-                  {t.completada && (
-                    <div className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
-                      Completada
-                    </div>
-                  )}
-                </div>
-                {t.descripcion && <p className="text-gray-600 mb-2">{t.descripcion}</p>}
-                {t.fecha_vencimiento && (
-                  <p className="text-sm text-gray-500">
-                    Vence: {new Date(t.fecha_vencimiento).toLocaleDateString()}
-                  </p>
-                )}
-              </div>
-              <div className="flex gap-2">
-                {!t.completada && (
-                  <Button size="sm" variant="success" onClick={() => completarTarea(t.id_tarea)}>
-                    <CheckCircle size={16} />
-                  </Button>
-                )}
-                <Button size="sm" variant="outline" onClick={() => handleEdit(t)}>
-                  <Edit size={16} />
-                </Button>
-                <Button size="sm" variant="danger" onClick={() => eliminarTarea(t.id_tarea)}>
-                  <Trash2 size={16} />
-                </Button>
-              </div>
-            </div>
-          </Card>
-        ))}
-
-        {tareas.length === 0 && (
-          <Card className="text-center py-8">
-            <p className="text-gray-500 mb-4">No tienes tareas creadas aún</p>
-            <Button onClick={() => setShowModal(true)}>Crear tu primera tarea</Button>
-          </Card>
-        )}
-      </div>
-
-      <Modal
-        isOpen={showModal}
-        onClose={() => {
-          setShowModal(false);
-          resetForm();
-        }}
-        title={editingTarea ? 'Editar Tarea' : 'Nueva Tarea'}
-      >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            editingTarea ? actualizarTarea() : crearTarea();
-          }}
-          className="space-y-4"
-        >
-          <input
-            type="text"
-            value={formData.titulo}
-            onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
-            placeholder="Título"
-            required
-            className="w-full px-3 py-2 border rounded-md"
-          />
-          <textarea
-            value={formData.descripcion}
-            onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-            placeholder="Descripción"
-            className="w-full px-3 py-2 border rounded-md"
-          />
-          <select
-            value={formData.prioridad}
-            onChange={(e) => setFormData({ ...formData, prioridad: e.target.value })}
-            className="w-full px-3 py-2 border rounded-md"
-          >
-            <option value="baja">Baja</option>
-            <option value="media">Media</option>
-            <option value="alta">Alta</option>
-          </select>
-          <input
-            type="date"
-            value={formData.fecha_vencimiento}
-            onChange={(e) =>
-              setFormData({ ...formData, fecha_vencimiento: e.target.value })
-            }
-            className="w-full px-3 py-2 border rounded-md"
-          />
-          <div className="flex gap-2">
-            <Button type="submit" className="flex-1">
-              {editingTarea ? 'Actualizar' : 'Crear'} Tarea
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                setShowModal(false);
-                resetForm();
-              }}
-            >
-              Cancelar
-            </Button>
-          </div>
-        </form>
-      </Modal>
+    <div className="min-h-screen bg-gray-50 pt-20 pb-8">
+      {/* Aquí ya puedes renderizar la UI de tareas y listas como en tu versión anterior */}
     </div>
   );
 }

@@ -1,19 +1,9 @@
 // src/componentes/AuthModal.jsx
 import React, { useState, useEffect } from "react";
-import {
-  FaEnvelope,
-  FaLock,
-  FaUser,
-  FaCalendarAlt,
-  FaVenusMars,
-  FaPhone,
-  FaIdBadge,
-  FaGoogle,
-  FaFacebookF,
-  FaMicrosoft,
-} from "react-icons/fa";
+import { FaEnvelope, FaLock, FaUser } from "react-icons/fa";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import ProgresoBar from "./ProgresoBar";
+import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 
 export default function AuthModal({
   isOpen,
@@ -24,36 +14,21 @@ export default function AuthModal({
 }) {
   const [isLogin, setIsLogin] = useState(defaultMode === "login");
   const [formData, setFormData] = useState({
-    name: "",
     username: "",
     email: "",
     password: "",
     confirmPassword: "",
-    birthdate: "",
-    gender: "",
-    phone: "",
   });
   const [errors, setErrors] = useState({});
   const [flashMessage, setFlashMessage] = useState({ message: "", type: "" });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Reglas de validación
+  // Validación de contraseña
   const validatePassword = (password) =>
     /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/.test(password);
 
-  const validatePhone = (phone) =>
-    phone === "" || /^\d{10}$/.test(phone); // opcional
-
-  const requiredFields = [
-    "name",
-    "username",
-    "email",
-    "password",
-    "confirmPassword",
-    "birthdate",
-    "gender",
-  ];
+  const requiredFields = ["email", "password", "confirmPassword"];
 
   const calculateProgress = () => {
     if (isLogin) return 0;
@@ -79,16 +54,7 @@ export default function AuthModal({
 
   useEffect(() => {
     if (!isOpen) {
-      setFormData({
-        name: "",
-        username: "",
-        email: "",
-        password: "",
-        confirmPassword: "",
-        birthdate: "",
-        gender: "",
-        phone: "",
-      });
+      setFormData({ username: "", email: "", password: "", confirmPassword: "" });
       setErrors({});
       setFlashMessage({ message: "", type: "" });
       setLoading(false);
@@ -105,24 +71,19 @@ export default function AuthModal({
 
   const validateForm = () => {
     let newErrors = {};
-    if (!isLogin) {
-      if (!formData.name) newErrors.name = "El nombre completo es requerido";
-      if (!formData.username)
-        newErrors.username = "El nombre de usuario es requerido";
-      if (!formData.birthdate)
-        newErrors.birthdate = "La fecha de nacimiento es requerida";
-      if (!formData.gender) newErrors.gender = "El género es requerido";
-      if (!validatePassword(formData.password))
-        newErrors.password =
-          "La contraseña debe tener 8 caracteres, una mayúscula, un número y un caracter especial";
-      if (formData.password !== formData.confirmPassword)
-        newErrors.confirmPassword = "Las contraseñas no coinciden";
-      if (!validatePhone(formData.phone))
-        newErrors.phone =
-          "El teléfono debe tener 10 dígitos o dejarse vacío (opcional)";
-    }
     if (!formData.email) newErrors.email = "El correo es requerido";
-    if (!formData.password) newErrors.password = "La contraseña es requerida";
+    if (!formData.password) {
+      newErrors.password = "La contraseña es requerida";
+    } else if (!validatePassword(formData.password)) {
+      newErrors.password =
+        "Debe tener al menos 8 caracteres, una mayúscula, un número y un caracter especial";
+    }
+    if (!isLogin) {
+      if (!formData.confirmPassword)
+        newErrors.confirmPassword = "Confirma la contraseña";
+      else if (formData.password !== formData.confirmPassword)
+        newErrors.confirmPassword = "Las contraseñas no coinciden";
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -141,24 +102,14 @@ export default function AuthModal({
     try {
       if (isLogin) {
         await onLogin(formData.email, formData.password);
-        setFlashMessage({
-          message: "Inicio de sesión exitoso",
-          type: "success",
-        });
+        setFlashMessage({ message: "Inicio de sesión exitoso", type: "success" });
       } else {
         await onRegister({
-          nombre: formData.name,
           username: formData.username,
           correo: formData.email,
           password: formData.password,
-          birthdate: formData.birthdate,
-          gender: formData.gender,
-          phone: formData.phone,
         });
-        setFlashMessage({
-          message: "Cuenta creada con éxito",
-          type: "success",
-        });
+        setFlashMessage({ message: "Cuenta creada con éxito", type: "success" });
       }
 
       onClose();
@@ -208,17 +159,31 @@ export default function AuthModal({
           </div>
         )}
 
-        {/* Botones sociales */}
-        <div className="flex justify-center gap-2 mb-4">
-          <button className="flex items-center gap-2 border px-3 py-2 rounded-lg text-sm hover:bg-gray-50 transition">
-            <FaGoogle className="text-red-500" /> Google
-          </button>
-          <button className="flex items-center gap-2 border px-3 py-2 rounded-lg text-sm hover:bg-gray-50 transition">
-            <FaFacebookF className="text-blue-600" /> Facebook
-          </button>
-          <button className="flex items-center gap-2 border px-3 py-2 rounded-lg text-sm hover:bg-gray-50 transition">
-            <FaMicrosoft className="text-gray-700" /> Microsoft
-          </button>
+        {/* 🔹 Solo Google */}
+        <div className="flex justify-center mb-4">
+          <GoogleOAuthProvider clientId="233538255494-5d828d1215lsq67d1ppjgdpv85pejutl.apps.googleusercontent.com">
+            <GoogleLogin
+              onSuccess={(credentialResponse) => {
+                console.log("Google login success:", credentialResponse);
+                setFlashMessage({
+                  message: "Inicio de sesión con Google exitoso",
+                  type: "success",
+                });
+                onClose();
+              }}
+              onError={() => {
+                setFlashMessage({
+                  message: "Error al iniciar con Google",
+                  type: "error",
+                });
+              }}
+              useOneTap
+              theme="filled_blue"
+              size="large"
+              shape="pill"
+              text="continue_with"
+            />
+          </GoogleOAuthProvider>
         </div>
 
         <div className="flex items-center my-3">
@@ -230,91 +195,17 @@ export default function AuthModal({
         {/* FORM */}
         <form onSubmit={handleSubmit} className="space-y-3">
           {!isLogin && (
-            <>
-              <div className="relative">
-                <FaUser className="absolute top-2.5 left-3 text-gray-400 text-sm" />
-                <input
-                  value={formData.name}
-                  onChange={handleChange}
-                  type="text"
-                  name="name"
-                  placeholder="Nombre completo"
-                  className="w-full border pl-9 py-2.5 rounded-md text-sm focus:ring-2 focus:ring-purple-500"
-                />
-                {errors.name && (
-                  <p className="text-xs text-red-600 mt-1">{errors.name}</p>
-                )}
-              </div>
-
-              <div className="relative">
-                <FaIdBadge className="absolute top-2.5 left-3 text-gray-400 text-sm" />
-                <input
-                  value={formData.username}
-                  onChange={handleChange}
-                  type="text"
-                  name="username"
-                  placeholder="Nombre de usuario"
-                  className="w-full border pl-9 py-2.5 rounded-md text-sm focus:ring-2 focus:ring-purple-500"
-                />
-                {errors.username && (
-                  <p className="text-xs text-red-600 mt-1">
-                    {errors.username}
-                  </p>
-                )}
-              </div>
-
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <FaCalendarAlt className="absolute top-2.5 left-3 text-gray-400 text-sm" />
-                  <input
-                    value={formData.birthdate}
-                    onChange={handleChange}
-                    type="date"
-                    name="birthdate"
-                    className="w-full border pl-9 py-2.5 rounded-md text-sm focus:ring-2 focus:ring-purple-500"
-                  />
-                  {errors.birthdate && (
-                    <p className="text-xs text-red-600 mt-1">
-                      {errors.birthdate}
-                    </p>
-                  )}
-                </div>
-                <div className="relative flex-1">
-                  <FaVenusMars className="absolute top-2.5 left-3 text-gray-400 text-sm" />
-                  <select
-                    value={formData.gender}
-                    onChange={handleChange}
-                    name="gender"
-                    className="w-full border pl-9 py-2.5 rounded-md text-sm focus:ring-2 focus:ring-purple-500"
-                  >
-                    <option value="">Género</option>
-                    <option value="masculino">Masculino</option>
-                    <option value="femenino">Femenino</option>
-                    <option value="otro">Otro</option>
-                  </select>
-                  {errors.gender && (
-                    <p className="text-xs text-red-600 mt-1">
-                      {errors.gender}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="relative">
-                <FaPhone className="absolute top-2.5 left-3 text-gray-400 text-sm" />
-                <input
-                  value={formData.phone}
-                  onChange={handleChange}
-                  type="tel"
-                  name="phone"
-                  placeholder="Teléfono (opcional)"
-                  className="w-full border pl-9 py-2.5 rounded-md text-sm focus:ring-2 focus:ring-purple-500"
-                />
-                {errors.phone && (
-                  <p className="text-xs text-red-600 mt-1">{errors.phone}</p>
-                )}
-              </div>
-            </>
+            <div className="relative">
+              <FaUser className="absolute top-2.5 left-3 text-gray-400 text-sm" />
+              <input
+                value={formData.username}
+                onChange={handleChange}
+                type="text"
+                name="username"
+                placeholder="Nombre de usuario (opcional)"
+                className="w-full border pl-9 py-2.5 rounded-md text-sm focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
           )}
 
           <div className="relative">
@@ -343,14 +234,13 @@ export default function AuthModal({
               placeholder="Contraseña"
               className="w-full border pl-9 pr-9 py-2.5 rounded-md text-sm focus:ring-2 focus:ring-purple-500"
             />
-<button
-  type="button"
-  onClick={() => setShowPassword(!showPassword)}
-  className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
->
-  {showPassword ? <FaEyeSlash /> : <FaEye />}
-</button>
-
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+            >
+              {showPassword ? <FaEyeSlash /> : <FaEye />}
+            </button>
             {errors.password && (
               <p className="text-xs text-red-600 mt-1">{errors.password}</p>
             )}

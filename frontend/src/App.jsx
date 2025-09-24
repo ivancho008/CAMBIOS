@@ -1,11 +1,12 @@
 // src/App.jsx
 import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+
 // Componentes
 import Navbar from './componentes/Navbar.jsx';
 import Footer from './componentes/Footer.jsx';
 import AuthModal from './componentes/AuthModal.jsx';
-import { apiCall } from './componentes/api.js';
+import api from './services/api.js';
 
 // Páginas
 import HomePage from './paginas/HomePage.jsx';
@@ -26,7 +27,7 @@ const useAuth = () => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      apiCall('/auth/me')
+      api.get('/auth/me')
         .then((data) => setUser(data))
         .catch(() => localStorage.removeItem('token'))
         .finally(() => setLoading(false));
@@ -36,20 +37,14 @@ const useAuth = () => {
   }, []);
 
   const login = async (correo, password) => {
-    const data = await apiCall('/auth/login', {
-      method: 'POST',
-      body: { correo, password },
-    });
+    const data = await api.post('/auth/login', { correo, password });
     localStorage.setItem('token', data.access_token);
     setUser(data.usuario);
     return data;
   };
 
   const register = async (userData) => {
-    const data = await apiCall('/auth/register', {
-      method: 'POST',
-      body: userData,
-    });
+    const data = await api.post('/auth/register', userData);
     localStorage.setItem('token', data.access_token);
     setUser(data.usuario);
     return data;
@@ -64,13 +59,10 @@ const useAuth = () => {
 };
 
 // ------------------------
-// App principal unificada
+// App principal fusionada
 export default function SynapseApp() {
   const { user, loading, login, register, logout } = useAuth();
-  const [authModal, setAuthModal] = useState({ open: false, mode: 'login' });
-
-  const onAuthClick = (mode = 'login') => setAuthModal({ open: true, mode });
-  const closeAuthModal = () => setAuthModal({ open: false, mode: 'login' });
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   if (loading) {
     return (
@@ -88,23 +80,20 @@ export default function SynapseApp() {
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <Navbar
           user={user}
-          onAuthClick={onAuthClick}
+          onAuthClick={() => setAuthModalOpen(true)}
           onLogout={logout}
         />
 
         <main className="flex-1">
           <Routes>
-            <Route path="/" element={<HomePage user={user} onAuthClick={onAuthClick} />} />
-            <Route path="/pomodoro" element={<PomodoroPage user={user} />} />
-            <Route path="/concentracion" element={<ConcentracionPage user={user} />} />
-            <Route path="/tareas" element={<TareasPage user={user} />} />
-            <Route path="/recompensas" element={<RecompensasPage user={user} />} />
-
-            {/* Rutas adicionales de App2 */}
-            <Route path="/meditacion" element={<MeditacionPage user={user} />} />
-            <Route path="/perfil" element={<PerfilPage user={user} />} />
-            <Route path="/sesion" element={<SesionGrupalPage user={user} />} />
-
+            <Route path="/" element={<HomePage user={user} onAuthClick={() => setAuthModalOpen(true)} />} />
+            <Route path="/pomodoro" element={user ? <PomodoroPage user={user} /> : <Navigate to="/" replace />} />
+            <Route path="/concentracion" element={user ? <ConcentracionPage user={user} /> : <Navigate to="/" replace />} />
+            <Route path="/tareas" element={user ? <TareasPage user={user} /> : <Navigate to="/" replace />} />
+            <Route path="/recompensas" element={user ? <RecompensasPage user={user} /> : <Navigate to="/" replace />} />
+            <Route path="/meditacion" element={user ? <MeditacionPage user={user} /> : <Navigate to="/" replace />} />
+            <Route path="/perfil" element={user ? <PerfilPage user={user} /> : <Navigate to="/" replace />} />
+            <Route path="/sesion" element={user ? <SesionGrupalPage user={user} /> : <Navigate to="/" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
@@ -112,9 +101,8 @@ export default function SynapseApp() {
         <Footer />
 
         <AuthModal
-          isOpen={authModal.open}
-          defaultMode={authModal.mode}
-          onClose={closeAuthModal}
+          isOpen={authModalOpen}
+          onClose={() => setAuthModalOpen(false)}
           onLogin={login}
           onRegister={register}
         />

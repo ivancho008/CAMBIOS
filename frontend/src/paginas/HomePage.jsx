@@ -17,7 +17,7 @@ const HomePage = ({ user, onAuthClick }) => {
       descripcion: 'Mejora tu productividad trabajando en bloques de tiempo con pausas estratégicas.',
       categoria: 'concentracion',
       ruta: '/pomodoro',
-      requiresAuth: false,
+      requiresAuth: true,
       icon: <Clock size={40} className="text-[#667eea]" />,
     },
     {
