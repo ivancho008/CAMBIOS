@@ -13,6 +13,7 @@ export default function AuthModal({
   onRegister,
 }) {
   const [isLogin, setIsLogin] = useState(defaultMode === "login");
+  const navigate = window.require ? null : require('react-router-dom').useNavigate ? require('react-router-dom').useNavigate() : null;
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -103,6 +104,7 @@ export default function AuthModal({
       if (isLogin) {
         await onLogin(formData.email, formData.password);
         setFlashMessage({ message: "Inicio de sesión exitoso", type: "success" });
+        if (navigate) navigate('/dashboard');
       } else {
         await onRegister({
           username: formData.username,
@@ -110,6 +112,7 @@ export default function AuthModal({
           password: formData.password,
         });
         setFlashMessage({ message: "Cuenta creada con éxito", type: "success" });
+        if (navigate) navigate('/dashboard');
       }
 
       onClose();

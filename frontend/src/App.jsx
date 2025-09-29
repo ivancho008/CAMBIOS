@@ -10,6 +10,7 @@ import api from './services/api.js';
 
 // Páginas
 import HomePage from './paginas/HomePage.jsx';
+import DashboardPage from './paginas/DashboardPage.jsx';
 import ConcentracionPage from './paginas/ConcentracionPage.jsx';
 import PomodoroPage from './paginas/PomodoroPage.jsx';
 import TareasPage from './paginas/TareasPage.jsx';
@@ -87,13 +88,14 @@ export default function SynapseApp() {
         <main className="flex-1">
           <Routes>
             <Route path="/" element={<HomePage user={user} onAuthClick={() => setAuthModalOpen(true)} />} />
+            <Route path="/dashboard" element={user ? <DashboardPage user={user} /> : <Navigate to="/" replace />} />
             <Route path="/pomodoro" element={user ? <PomodoroPage user={user} /> : <Navigate to="/" replace />} />
             <Route path="/concentracion" element={user ? <ConcentracionPage user={user} /> : <Navigate to="/" replace />} />
             <Route path="/tareas" element={user ? <TareasPage user={user} /> : <Navigate to="/" replace />} />
             <Route path="/recompensas" element={user ? <RecompensasPage user={user} /> : <Navigate to="/" replace />} />
             <Route path="/meditacion" element={user ? <MeditacionPage user={user} /> : <Navigate to="/" replace />} />
             <Route path="/perfil" element={user ? <PerfilPage user={user} /> : <Navigate to="/" replace />} />
-            <Route path="/sesion" element={user ? <SesionGrupalPage user={user} /> : <Navigate to="/" replace />} />
+            <Route path="/sesiones" element={user ? <SesionGrupalPage user={user} /> : <Navigate to="/" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
